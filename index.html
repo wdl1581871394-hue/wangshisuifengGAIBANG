@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>往事变作草芥随风散 📅</title>
+    
+    <style>
+        @import url('https://cdn.staticfile.org/lxgw-wenkai-screen-webfont/1.6.0/lxgwwenkaiscreen.css');
+
+        :root {
+            --retro-green: #1f5f39; /* 加深的老黄历印刷绿 */
+            --retro-red: #a52a20;   /* 褪色的印泥红 */
+            --paper-bg: #EAE1D0;    
+            --text-dark: #2b2b2b;
+            --note-bg: #FDF3AE; 
+        }
+
+        body {
+            font-family: 'LXGW WenKai Screen', 'PingFang SC', serif;
+            background-color: #222; 
+            background-image: radial-gradient(#333 1px, transparent 1px);
+            background-size: 20px 20px;
+            margin: 0; padding: 20px;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; overflow-x: hidden;
+        }
+
+        /* 包裹容器：绝对高度锁死 760px，更宽阔 */
+        .book-wrapper {
+            position: relative; max-width: 980px; width: 100%; height: 760px; 
+            perspective: 2500px; transform-style: preserve-3d;
+        }
+
+        .old-paper {
+            background-color: var(--paper-bg); box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            border-radius: 2px; padding: 25px; border: 1px solid #C4B79E;
+            box-sizing: border-box; height: 100%; 
+        }
+        .old-paper::before {
+            content: ''; position: absolute; top: -10px; left: 0; right: 0; height: 15px;
+            background-image: radial-gradient(circle, transparent 4px, var(--paper-bg) 5px);
+            background-size: 15px 15px; background-position: -7px -7px;
+        }
+
+        /* =========================================
+           封面层：舒缓卷曲动画
+           ========================================= */
+        .cover-page {
+            position: absolute; top: 0; left: 0; width: 100%; z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; transform-origin: 0% 0%; background-color: var(--paper-bg);
+        }
+        .cover-content { border: 2px dashed var(--retro-green); padding: 50px 40px; width: 80%; background-color: rgba(255,255,255,0.2); pointer-events: none; }
+        .cover-title { font-size: 42px; color: var(--retro-green); font-weight: bold; margin-bottom: 25px; letter-spacing: 4px; }
+        .cover-subtitle { font-size: 18px; color: #555; margin-bottom: 20px; line-height: 2; }
+
+        .corner-btn {
+            position: absolute; bottom: 0; right: 0; background-color: var(--retro-red); color: var(--paper-bg);
+            padding: 15px 30px; font-size: 18px; font-family: 'LXGW WenKai Screen', serif; cursor: pointer;
+            border-radius: 40px 0 2px 0; box-shadow: -4px -4px 15px rgba(165, 42, 32, 0.3);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 200; display: flex; align-items: center; gap: 5px;
+        }
+        .corner-btn:hover { padding: 25px 40px; background-color: #801e16; box-shadow: -8px -8px 25px rgba(165, 42, 32, 0.4); }
+
+        .peel-off { animation: softPeel 2.5s cubic-bezier(0.45, 0.05, 0.22, 1) forwards; pointer-events: none; }
+        @keyframes softPeel {
+            0% { transform: rotate3d(0, 0, 0, 0deg); border-bottom-right-radius: 2px; }
+            30% { border-bottom-right-radius: 500px; transform: rotate3d(-1, 1, 0, 20deg) translate(-2%, -2%); box-shadow: -20px 30px 50px rgba(0,0,0,0.5); }
+            100% { border-bottom-right-radius: 1200px; transform: rotate3d(-1, 1.2, 0, 110deg) translate(-15%, -15%) translateZ(300px); opacity: 0; box-shadow: none; }
+        }
+
+        /* =========================================
+           黄历主体层：极致国风排版
+           ========================================= */
+        .main-page { position: relative; z-index: 1; width: 100%; height: 100%; }
+        .inner-border { 
+            border: 4px solid var(--retro-green); padding: 15px; display: flex; gap: 25px; position: relative; height: 100%; box-sizing: border-box;
+            opacity: 0; transition: opacity 2.5s ease-in-out; 
+        }
+        .inner-border.show { opacity: 1; }
+        .inner-border::after { content: ''; position: absolute; top: 4px; bottom: 4px; left: 4px; right: 4px; border: 1px solid var(--retro-green); pointer-events: none; }
+
+        .left-col { flex: 0.9; display: flex; flex-direction: column; border-right: 2px solid var(--retro-green); padding-right: 25px; }
+        .right-col { flex: 1.3; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
+
+        /* 左侧：深度复刻老黄历 */
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid var(--retro-green); padding-bottom: 8px; margin-bottom: 15px; font-weight: bold; color: var(--retro-green); font-size: 18px;}
+        .main-date-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .couplet { writing-mode: vertical-rl; font-size: 22px; font-weight: bold; color: var(--retro-green); letter-spacing: 6px; text-shadow: 1px 1px 0 rgba(0,0,0,0.05);}
+        .big-number { font-family: 'Impact', sans-serif; font-size: 150px; line-height: 1; color: var(--retro-green); text-shadow: 3px 3px 0px rgba(0,0,0,0.1); transform: scaleY(1.1); margin: 0 10px;}
+        .weekend-red { color: var(--retro-red) !important; }
+
+        /* 新增：农历横幅 */
+        .lunar-banner { display: flex; border: 2px solid var(--retro-green); text-align: center; font-weight: bold; color: var(--retro-green); font-size: 16px; margin-bottom: 10px; background-color: rgba(31, 95, 57, 0.05);}
+        .lunar-banner div { flex: 1; padding: 6px 0; border-right: 2px solid var(--retro-green); }
+        .lunar-banner div:last-child { border-right: none; }
+
+        /* 新增：老黄历九宫格吉神阵 (填补空旷) */
+        .retro-grid { display: grid; grid-template-columns: repeat(3, 1fr); border: 2px solid var(--retro-green); margin-bottom: 15px; font-size: 14px; text-align: center; color: var(--retro-green); font-weight: bold;}
+        .retro-grid div { border-right: 1px solid var(--retro-green); border-bottom: 1px solid var(--retro-green); padding: 8px 4px; display: flex; flex-direction: column; justify-content: center; }
+        .retro-grid div:nth-child(3n) { border-right: none; }
+        .retro-grid div:nth-child(n+4) { border-bottom: none; }
+        .grid-val { color: var(--text-dark); font-weight: normal; margin-top: 4px; font-size: 13px;}
+
+        /* 大气宜忌双框 */
+        .yiji-classic { display: flex; border: 2px solid var(--retro-green); flex-grow: 1; }
+        .yj-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; position: relative;}
+        .yj-btn:first-child { border-right: 2px solid var(--retro-green); }
+        .yj-btn:hover { background-color: rgba(31, 95, 57, 0.08); }
+        .yj-circle { width: 45px; height: 45px; border-radius: 50%; color: #fff; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);}
+        .yj-btn.good .yj-circle { background-color: var(--retro-red); border: 2px solid var(--paper-bg); }
+        .yj-btn.bad .yj-circle { background-color: var(--text-dark); border: 2px solid var(--paper-bg); }
+        .yj-text { font-size: 28px; font-weight: bold; letter-spacing: 4px; color: var(--text-dark); margin-left: 4px;}
+        .yj-hint { position: absolute; bottom: 5px; font-size: 12px; opacity: 0.6; color: var(--text-dark);}
+
+        /* ====== 右侧：显眼的今日史记置顶 ====== */
+        .history-box { 
+            border: 2px solid var(--retro-green); background-color: rgba(31, 95, 57, 0.05); 
+            padding: 12px 15px; border-radius: 2px; position: relative; margin-bottom: 15px;
+            height: 90px; box-sizing: border-box; overflow: hidden;
+        }
+        .history-title { 
+            display: inline-block; background-color: var(--retro-red); color: var(--paper-bg); 
+            padding: 2px 10px; font-weight: bold; font-size: 14px; margin-bottom: 5px; letter-spacing: 2px;
+        }
+        
+        /* 日历君的私语：红线笺谱 */
+        .butler-box { 
+            background-color: var(--paper-bg); border: 1px solid #dcd3b6; padding: 20px 15px 15px; 
+            border-radius: 2px; position: relative; height: 120px; box-sizing: border-box; margin-bottom: 15px;
+            background-image: repeating-linear-gradient(transparent, transparent 27px, rgba(165, 42, 32, 0.15) 28px);
+            background-position: 0 14px; box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+        }
+        .butler-title { position: absolute; top: -12px; left: 20px; background: var(--paper-bg); color: var(--retro-red); padding: 0 10px; font-weight: bold; border: 1px solid var(--retro-red); font-size: 14px; letter-spacing: 2px; }
+        .butler-content { font-size: 16px; line-height: 28px; color: var(--text-dark); height: 84px; overflow: hidden; } 
+
+        /* 3个功能牌匾：天象 / 叮嘱 / 盼头账本 */
+        .info-grid { display: flex; gap: 12px; margin-bottom: 15px; height: 90px; box-sizing: border-box; }
+        .info-card { flex: 1; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; box-sizing: border-box; }
+        .card-weather { border: 2px solid var(--retro-green); background-color: rgba(31, 95, 57, 0.05); border-radius: 10px 30px 10px 30px; }
+        .card-health { border: 2px solid var(--retro-red); background-color: rgba(165, 42, 32, 0.05); border-radius: 4px; }
+        .card-countdown { border: 2px dashed #8b6b43; background-color: rgba(139, 107, 67, 0.08); border-radius: 4px; }
+        .info-card:hover { transform: translateY(-2px); box-shadow: 2px 4px 10px rgba(0,0,0,0.1);}
+        
+        .info-title { font-size: 16px; font-weight: bold; letter-spacing: 2px; z-index: 2;}
+        .info-action { font-size: 12px; margin-top: 6px; opacity: 0.8; z-index: 2;}
+
+        /* 情绪便签板 */
+        .sticky-board { display: flex; flex-wrap: wrap; gap: 15px; height: 135px; overflow: hidden; align-content: flex-start;} 
+        .sticky-note { background-color: var(--note-bg); width: 130px; padding: 12px; box-shadow: 2px 4px 6px rgba(0,0,0,0.1); position: relative; transform: rotate(-2deg); transition: transform 0.3s; }
+        .sticky-note:nth-child(even) { transform: rotate(3deg); }
+        .sticky-note:hover { transform: scale(1.05) rotate(0deg); z-index: 10; }
+        .sticky-note::before { content: ''; position: absolute; top: -8px; left: 50%; transform: translateX(-50%) rotate(-2deg); width: 50px; height: 12px; background-color: rgba(255, 255, 255, 0.5); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .note-text { font-size: 14px; color: #555; line-height: 1.5; word-wrap: break-word; }
+        .note-date { font-size: 11px; color: #999; text-align: right; margin-top: 8px; border-top: 1px dotted #ccc; padding-top: 3px; }
+
+        .btn-add-note { background-color: var(--note-bg); color: var(--text-dark); border: 1px dashed var(--retro-green); padding: 5px 12px; font-family: 'LXGW WenKai Screen', serif; cursor: pointer; transition: all 0.3s; box-shadow: 2px 2px 0 rgba(0,0,0,0.1); font-size: 14px;}
+        .btn-add-note:hover { background-color: #fceb86; transform: translateY(-2px); }
+
+        .pen-cursor { display: inline-block; color: var(--retro-red); animation: writeBlink 0.3s infinite alternate; }
+        @keyframes writeBlink { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-3px); opacity: 0.5; } }
+        
+        @media (max-width: 768px) { .book-wrapper { height: auto; } .inner-border { flex-direction: column; } .left-col { border-right: none; border-bottom: 2px dashed rgba(36,107,67,0.4); padding-bottom: 20px; padding-right: 0;} .retro-grid{ font-size: 12px; } }
+
+        /* =========================================
+           模态弹窗系统：统一的国风“解签纸”
+           ========================================= */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(3px); }
+        
+        /* 便签与账本表单 */
+        .modal-form { background: var(--note-bg); padding: 30px; border-radius: 2px; width: 320px; box-shadow: 0 15px 40px rgba(0,0,0,0.4); border: 1px solid #d4c58b;}
+        .modal-form textarea, .modal-form input { width: 100%; box-sizing: border-box; background: transparent; border: none; border-bottom: 1px solid #a89f7a; font-family: 'LXGW WenKai Screen', serif; font-size: 16px; outline: none; margin-bottom: 15px; color: var(--text-dark);}
+        .modal-form textarea { height: 80px; resize: none; }
+        .modal-form input[type="date"] { padding-bottom: 5px; }
+        
+        /* 统一解签卷轴 */
+        .modal-content-detail { 
+            background: var(--paper-bg); padding: 35px 30px; border: 2px solid var(--retro-green); border-radius: 2px; 
+            width: 320px; box-shadow: 0 15px 50px rgba(0,0,0,0.6); text-align: center; position: relative;
+        }
+        .modal-content-detail::before { content:''; position: absolute; top: 6px; bottom: 6px; left: 6px; right: 6px; border: 1px solid var(--retro-green); opacity: 0.4; pointer-events: none;}
+        
+        .detail-modal-title { font-size: 24px; font-weight: bold; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed var(--retro-green); letter-spacing: 2px;}
+        .detail-modal-text { font-size: 17px; line-height: 1.8; color: var(--text-dark); min-height: 90px; text-align: left; }
+
+        .modal-btn { background: var(--retro-green); color: var(--paper-bg); border: 1px solid var(--retro-green); padding: 8px 20px; cursor: pointer; font-family: 'LXGW WenKai Screen', serif; transition: 0.3s; font-size: 16px; letter-spacing: 2px;}
+        .modal-btn:hover { background: var(--paper-bg); color: var(--retro-green); }
+    </style>
+</head>
+<body>
+
+<!-- 音频播放器 -->
+<audio id="bgm" loop preload="auto"><source src="https://assets.mixkit.co/music/preview/mixkit-relaxing-acoustic-guitar-139.mp3" type="audio/mpeg"></audio>
+<audio id="sfx-flip" preload="auto"><source src="https://www.soundjay.com/misc/sounds/page-flip-01a.mp3" type="audio/mpeg"></audio>
+<audio id="sfx-pen" loop preload="auto"><source src="https://assets.mixkit.co/sfx/preview/mixkit-fast-pencil-writing-on-paper-2126.mp3" type="audio/mpeg"></audio>
+
+<div class="book-wrapper">
+    <!-- 封面层 -->
+    <div class="cover-page old-paper" id="cover-page">
+        <div class="cover-content">
+            <div class="cover-title">往事变作草芥随风散</div>
+            <div class="cover-subtitle" id="cover-subtitle">加载中...</div>
+        </div>
+        <div class="corner-btn" onclick="startJourney()">✒️ 舒缓翻开今日</div>
+    </div>
+
+    <!-- 主体层 -->
+    <div class="main-page old-paper" id="main-container">
+        <div class="inner-border" id="inner-content">
+            
+            <!-- ====== 左栏：纯正老黄历复刻 ====== -->
+            <div class="left-col">
+                <div class="header">
+                    <span id="month-en"></span>
+                    <span style="border: 2px solid var(--retro-green); padding: 2px 10px; border-radius: 15px;" id="year-num"></span>
+                    <span id="month-zh"></span>
+                </div>
+
+                <div class="main-date-area">
+                    <div class="couplet">烟火人间<br>又是一天</div>
+                    <div class="big-number" id="big-day"></div>
+                    <div class="couplet">岁月静好<br>满心欢喜</div>
+                </div>
+
+                <!-- 农历横幅 -->
+                <div class="lunar-banner">
+                    <div id="lunar-year">加载中</div>
+                    <div id="lunar-date"></div>
+                    <div id="week-day"></div>
+                </div>
+
+                <!-- 九宫格吉神阵 (填补空旷，增加趣味) -->
+                <div class="retro-grid">
+                    <div>吉神方位<div class="grid-val">你心里</div></div>
+                    <div>今日五行<div class="grid-val">缺烦恼</div></div>
+                    <div>每日胎神<div class="grid-val">占门外南</div></div>
+                    <div>彭祖百忌<div class="grid-val">勿生闷气</div></div>
+                    <div>冲煞方位<div class="grid-val">煞向emo</div></div>
+                    <div>今日八字<div class="grid-val">大吉大利</div></div>
+                </div>
+
+                <!-- 绝对对称的底盘宜忌 -->
+                <div class="yiji-classic">
+                    <div class="yj-btn good" onclick="openDetailModal('yi')">
+                        <div class="yj-circle">宜</div>
+                        <div class="yj-text" id="yi-keyword"></div>
+                        <div class="yj-hint">👆 窥探天机</div>
+                    </div>
+                    <div class="yj-btn bad" onclick="openDetailModal('ji')">
+                        <div class="yj-circle">忌</div>
+                        <div class="yj-text" id="ji-keyword"></div>
+                        <div class="yj-hint">👆 趋吉避凶</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ====== 右栏：互动与关怀 ====== -->
+            <div class="right-col">
+                
+                <!-- 置顶史记 (醒目大气) -->
+                <div class="history-box">
+                    <div class="history-title">📜 今日史记</div>
+                    <div style="font-size: 14px; color: var(--text-dark); line-height: 1.6;" id="history-content"></div>
+                </div>
+
+                <!-- 红线笺谱私语 -->
+                <div class="butler-box">
+                    <div class="butler-title">日历君的私语</div>
+                    <div class="butler-content" id="butler-message"></div>
+                </div>
+
+                <!-- 3个国风牌匾二级菜单 -->
+                <div class="info-grid">
+                    <div class="info-card card-weather" onclick="openDetailModal('weather')">
+                        <div class="info-title" style="color: var(--retro-green);">🌤️ 观天象</div>
+                        <div class="info-action" style="color: var(--retro-green);">👉 洞察天机</div>
+                    </div>
+
+                    <div class="info-card card-health" onclick="openDetailModal('health')">
+                        <div class="info-title" style="color: var(--retro-red);">💪 坊间叮嘱</div>
+                        <div class="info-action" style="color: var(--retro-red);">👉 拆开锦囊</div>
+                    </div>
+
+                    <!-- 盼头账本回归 -->
+                    <div class="info-card card-countdown" onclick="openCountdownModal()">
+                        <div class="info-title" style="color: #8b6b43;">🎯 盼头账本</div>
+                        <div class="info-action" style="color: #8b6b43;" id="countdown-btn-text">👉 记下期盼</div>
+                    </div>
+                </div>
+
+                <!-- 情绪便签板 -->
+                <div style="flex-grow: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span style="font-weight: bold; color: var(--retro-green); border-bottom: 2px solid var(--retro-red); padding-bottom: 2px;">客官的角落</span>
+                        <button class="btn-add-note" onclick="openNoteModal()">+ 贴张情绪便签 ✎</button>
+                    </div>
+                    <div class="sticky-board" id="note-board"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 弹窗：情绪便签 -->
+<div class="modal-overlay" id="note-modal">
+    <div class="modal-form">
+        <div style="text-align: center; margin-bottom: 15px; color: var(--retro-green); font-weight: bold; font-size: 18px;">记录当下的心情</div>
+        <textarea id="note-input" placeholder="今天过得怎么样？写下来，绝对安全地保存在您的本地设备中..."></textarea>
+        <div style="display: flex; justify-content: space-between;">
+            <button class="modal-btn" style="background: transparent; color: #666; border-color: #ccc;" onclick="closeModal('note-modal')">取消</button>
+            <button class="modal-btn" onclick="saveNote()">贴上黄历</button>
+        </div>
+    </div>
+</div>
+
+<!-- 弹窗：盼头账本 -->
+<div class="modal-overlay" id="countdown-modal">
+    <div class="modal-form">
+        <div style="text-align: center; margin-bottom: 15px; color: #8b6b43; font-weight: bold; font-size: 18px;">记下心中的期盼</div>
+        <input type="text" id="cd-event" placeholder="客官，您在期盼什么？(如: 见某人)">
+        <input type="date" id="cd-date">
+        <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+            <button class="modal-btn" style="background: transparent; color: #666; border-color: #ccc;" onclick="closeModal('countdown-modal')">取消</button>
+            <button class="modal-btn" style="background: #8b6b43; border-color: #8b6b43;" onclick="saveCountdown()">落笔</button>
+        </div>
+    </div>
+</div>
+
+<!-- 弹窗：统一国风解签纸 -->
+<div class="modal-overlay" id="detail-modal">
+    <div class="modal-content-detail">
+        <div class="detail-modal-title" id="detail-modal-title"></div>
+        <div class="detail-modal-text" id="detail-modal-text"></div>
+        <button class="modal-btn" style="margin-top: 25px;" onclick="closeDetailModal()">知晓了</button>
+    </div>
+</div>
+
+<script>
+    // --- 1. 万年历引擎与数据 ---
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); 
+    const currentDate = today.getDate();
+    const currentDay = today.getDay(); 
+
+    const monthEnNames =["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+    const monthZhNames =["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"];
+    const weekNames =["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+
+    // 粗略模拟农历天干地支（意境优先）
+    const tiangan =["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+    const dizhi =["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+    const mockYearStr = tiangan[(currentYear-4)%10] + dizhi[(currentYear-4)%12] + "年";
+    const mockLunarDays =["初一","初二","初三","初四","初五","初六","初七","初八","初九","初十","十一","十二","十三","十四","十五","十六","十七","十八","十九","二十","廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById('cover-subtitle').innerHTML = `${currentYear}年${currentMonth + 1}月${currentDate}日，${weekNames[currentDay]}。<br>昨日的纷扰与疲惫，已被老旧的黄历吸收。<br>客官，让往事随风，该翻篇啦。<br>`;
+        document.getElementById('month-en').innerText = monthEnNames[currentMonth];
+        document.getElementById('year-num').innerText = `[${currentYear}]`;
+        document.getElementById('month-zh').innerText = monthZhNames[currentMonth] + ([1,3,5,7,8,10,12].includes(currentMonth + 1) ? "大" : "平");
+        
+        const bigDayEl = document.getElementById('big-day');
+        bigDayEl.innerText = currentDate;
+        if(currentDay === 0 || currentDay === 6) { bigDayEl.classList.add('weekend-red'); }
+
+        document.getElementById('lunar-year').innerText = mockYearStr;
+        document.getElementById('lunar-date').innerText = monthZhNames[currentMonth] + mockLunarDays[(currentDate + 10) % 30];
+        document.getElementById('week-day').innerText = weekNames[currentDay];
+
+        updateCountdownCard();
+    });
+
+    const yiList =[{ short: "出行", long: "今天出门会有好运哦，连吹来的风都是温柔的。" }, { short: "散步", long: "放下手机去楼下走走吧，说不定会撞见满眼的风景。" }, { short: "干饭", long: "宜用美食犒劳自己，火锅烤肉都在向你招手！" }, { short: "发呆", long: "生活需要留白，今天非常适合坐在窗边虚度光阴。" }];
+    const jiList =[{ short: "内卷", long: "大好时光，如果天气不错，偷偷摸个鱼才是正经事。" }, { short: "熬夜", long: "月亮不睡你不睡，你的头发说它真的很崩溃！" }, { short: "焦虑", long: "忌为明天的事发愁。车到山前必有路，船到桥头自然直。" }, { short: "生气", long: "气出病来无人替，深呼吸，别让烂事破坏了你的风水。" }];
+    const todayYi = yiList[currentDate % yiList.length]; const todayJi = jiList[(currentDate + 3) % jiList.length];
+    
+    document.getElementById('yi-keyword').innerText = todayYi.short;
+    document.getElementById('ji-keyword').innerText = todayJi.short;
+
+    let globalWeatherText = "日历君正在努力夜观天象，请稍后再试...";
+
+    // --- 2. 交互与动画逻辑 ---
+    function startJourney() {
+        try {
+            const bgm = document.getElementById('bgm'); const sfxFlip = document.getElementById('sfx-flip');
+            if(bgm) { bgm.volume = 0.35; bgm.play().catch(e => {}); }
+            if(sfxFlip) sfxFlip.play().catch(e => {});
+        } catch (error) {}
+
+        const coverPage = document.getElementById('cover-page');
+        if (!coverPage) return;
+        coverPage.querySelector('.corner-btn').style.pointerEvents = 'none';
+        coverPage.classList.add('peel-off');
+
+        setTimeout(() => {
+            coverPage.style.display = 'none'; 
+            document.getElementById('inner-content').classList.add('show');
+            setTimeout(() => { beginWritingMagic(); }, 1500); 
+        }, 2500); 
+    }
+
+    // --- 3. 诗意天气API ---
+    async function fetchWeatherTip() {
+        let cityEn = "Your City";
+        try {
+            const locRes = await fetch('https://get.geojs.io/v1/ip/geo.json');
+            const locData = await locRes.json();
+            cityEn = locData.city || locData.country || "Armenia";
+            const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${locData.latitude}&longitude=${locData.longitude}&current_weather=true`);
+            const weatherData = await weatherRes.json();
+            
+            return `日历君夜观天象，感知到远方的 <b>${cityEn}</b> 此刻气温约为 ${weatherData.current_weather.temperature}℃。无论窗外是阴是晴，出门都请带上属于此刻的好心情！`;
+        } catch (e) {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            cityEn = tz.split('/').pop().replace('_', ' ') || "Armenia";
+            return `日历君眺望着远方 <b>${cityEn}</b> 的天空，为您祈求了一整天的晴朗。出门记得照顾好自己哦。`;
+        }
+    }
+
+    // --- 4. 写字音效控制器 ---
+    let activeWriters = 0; const sfxPen = document.getElementById('sfx-pen'); if(sfxPen) sfxPen.volume = 0.6;
+    let writeTokens = {};
+    async function penWriteHTML(elementId, htmlString, speed = 40) {
+        const token = Symbol(); writeTokens[elementId] = token;
+        activeWriters++; if (activeWriters === 1 && sfxPen) { sfxPen.play().catch(e=>{}); }
+
+        const el = document.getElementById(elementId); if(!el) return;
+        el.innerHTML = ''; let currentHTML = ''; let i = 0;
+        let cursor = el.parentNode.querySelector('.pen-cursor');
+        if(!cursor) { cursor = document.createElement('span'); cursor.className = 'pen-cursor'; cursor.innerHTML = '✒️'; el.parentNode.insertBefore(cursor, el.nextSibling); }
+        cursor.style.display = 'inline-block';
+
+        while (i < htmlString.length) {
+            if (writeTokens[elementId] !== token) break;
+            if (htmlString[i] === '<') {
+                let tag = ''; while (htmlString[i] !== '>' && i < htmlString.length) { tag += htmlString[i]; i++; } tag += '>'; currentHTML += tag;
+            } else {
+                currentHTML += htmlString[i]; i++; el.innerHTML = currentHTML;
+                await new Promise(r => setTimeout(r, speed + Math.random() * 20)); 
+            }
+        }
+        
+        if (writeTokens[elementId] === token) { cursor.style.display = 'none'; el.innerHTML = currentHTML; }
+        activeWriters--; if (activeWriters === 0 && sfxPen) { sfxPen.pause(); }
+    }
+
+    // --- 5. 纯本地隐私数据 (便签 & 盼头) ---
+    function getNotes() { try { return JSON.parse(localStorage.getItem('my_diary_notes')) ||[]; } catch (e) { return[]; } }
+    
+    function generateButlerMessage(notes) {
+        const hour = new Date().getHours();
+        let greeting = hour < 12 ? "早安，客官。" : (hour < 18 ? "午安，客官。" : "夜深了，客官。");
+
+        // 优先检查是否有刚设置的盼头
+        try {
+            const cd = JSON.parse(localStorage.getItem('my_countdown'));
+            if(cd && cd.isNew) {
+                cd.isNew = false; localStorage.setItem('my_countdown', JSON.stringify(cd));
+                return `${greeting} 账本已记下，距离好日子还有 ${cd.diffDays} 天。岁月漫长，值得等待，日历君陪您一起盼着。`;
+            }
+        } catch(e){}
+
+        const recentNote = notes.find(n => n.text.includes("委屈") || n.text.includes("累"));
+        if (recentNote) { return `${greeting} 老伙计发现前几天您写下了『委屈』。不管外面风霜如何，这本黄历永远是你的避风港。`; }
+        return `${greeting} 新的一天，纸笔已备好。伴着这吉他声，往事变作草芥随风散，今天想记点什么奇遇呢？`;
+    }
+
+    const healthTips =["久坐伤腰，财气不通哦！赶紧站起来像猫咪一样伸个大懒腰！", "不管多忙，喝水可是人生大事。快去给自己倒杯温水吧！", "夜里子时前入睡，养肝护发。千万别熬夜修仙了。"];
+    let currentTipIndex = Math.floor(Math.random() * healthTips.length);
+
+    // --- 6. 模态弹窗系统 ---
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    
+    // 情绪便签
+    function renderNotes() {
+        const notes = getNotes();
+        const board = document.getElementById('note-board'); board.innerHTML = "";
+        const displayNotes = notes.sort((a,b) => b.timestamp - a.timestamp).slice(0, 3);
+        displayNotes.forEach(note => {
+            const div = document.createElement('div'); div.className = 'sticky-note';
+            div.innerHTML = `<div class="note-text">${note.text}</div><div class="note-date">${note.dateStr}</div>`;
+            board.appendChild(div);
+        });
+    }
+    function openNoteModal() { document.getElementById('note-modal').style.display = 'flex'; }
+    async function saveNote() {
+        const text = document.getElementById('note-input').value.trim(); if (!text) return;
+        let notes = getNotes();
+        notes.push({ id: Date.now(), text: text, dateStr: `${currentYear}/${currentMonth + 1}/${currentDate}`, timestamp: Date.now() });
+        localStorage.setItem('my_diary_notes', JSON.stringify(notes));
+        closeModal('note-modal'); renderNotes();
+        document.getElementById('note-input').value = "";
+        await penWriteHTML('butler-message', "✒️ 妥了！客官的心事，老伙计已牢牢记下，绝对安全地锁在您的设备里哦！", 25);
+    }
+
+    // 盼头账本
+    function updateCountdownCard() {
+        try {
+            const cd = JSON.parse(localStorage.getItem('my_countdown'));
+            const textEl = document.getElementById('countdown-btn-text');
+            if (cd && cd.date) {
+                const target = new Date(cd.date);
+                const todayReset = new Date(currentYear, currentMonth, currentDate);
+                const diffDays = Math.ceil((target - todayReset) / (1000 * 60 * 60 * 24));
+                cd.diffDays = diffDays; localStorage.setItem('my_countdown', JSON.stringify(cd)); // 更新天数
+                
+                if (diffDays > 0) textEl.innerHTML = `距日 <b>${diffDays}</b> 天`;
+                else if (diffDays === 0) textEl.innerHTML = `🎉 就在今日`;
+                else textEl.innerHTML = `已过 ${Math.abs(diffDays)} 天`;
+            }
+        } catch(e){}
+    }
+    function openCountdownModal() { document.getElementById('countdown-modal').style.display = 'flex'; }
+    async function saveCountdown() {
+        const event = document.getElementById('cd-event').value.trim();
+        const dateStr = document.getElementById('cd-date').value;
+        if(!event || !dateStr) return;
+        localStorage.setItem('my_countdown', JSON.stringify({ event: event, date: dateStr, isNew: true }));
+        closeModal('countdown-modal');
+        updateCountdownCard();
+        await penWriteHTML('butler-message', generateButlerMessage(getNotes()), 30); // 触发管家私语
+    }
+
+    // 统一国风解签弹窗
+    function openDetailModal(type) {
+        const modal = document.getElementById('detail-modal');
+        const titleEl = document.getElementById('detail-modal-title');
+        modal.style.display = 'flex';
+        
+        if (type === 'yi') {
+            titleEl.innerHTML = `今日宜 · ${todayYi.short}`; titleEl.style.color = 'var(--retro-red)'; titleEl.style.borderColor = 'var(--retro-red)';
+            penWriteHTML('detail-modal-text', todayYi.long, 30);
+        } else if (type === 'ji') {
+            titleEl.innerHTML = `今日忌 · ${todayJi.short}`; titleEl.style.color = 'var(--text-dark)'; titleEl.style.borderColor = 'var(--text-dark)';
+            penWriteHTML('detail-modal-text', todayJi.long, 30);
+        } else if (type === 'weather') {
+            titleEl.innerHTML = `🌤️ 观天象`; titleEl.style.color = 'var(--retro-green)'; titleEl.style.borderColor = 'var(--retro-green)';
+            penWriteHTML('detail-modal-text', globalWeatherText, 30);
+        } else if (type === 'health') {
+            titleEl.innerHTML = `💪 坊间叮嘱`; titleEl.style.color = 'var(--retro-red)'; titleEl.style.borderColor = 'var(--retro-red)';
+            currentTipIndex = (currentTipIndex + 1) % healthTips.length;
+            penWriteHTML('detail-modal-text', healthTips[currentTipIndex], 30);
+        }
+    }
+    function closeDetailModal() { 
+        document.getElementById('detail-modal').style.display = 'none'; 
+        writeTokens['detail-modal-text'] = Symbol(); 
+        if (activeWriters > 0) activeWriters--; if (activeWriters === 0 && sfxPen) sfxPen.pause();
+    }
+
+    // --- 7. 启动落笔 ---
+    async function beginWritingMagic() {
+        // 动态匹配历史
+        const historyDB = { "3-14": "1879年今日，老顽童<b>爱因斯坦</b>降生。逢圆周率日，吃个Pie吧！", "3-15": "1915年今日，消费者权益运动兴起。出门买东西别被坑哦！" };
+        const mDay = `${currentMonth + 1}-${currentDate}`;
+        document.getElementById('history-content').innerHTML = historyDB[mDay] || `历史上的今天，一定有个伟大的人吃撑了打了个嗝。虽无记载，老伙计猜一定有。`;
+
+        const notes = getNotes();
+        if(notes.length === 0) {
+            let pastDate = new Date(); pastDate.setDate(currentDate - 3); 
+            notes.push({ id: Date.now(), text: "这是属于您本地设备的专属日记本，请放心记录，绝对私密不上传服务器哦~", dateStr: `${currentYear}/${currentMonth+1}/${pastDate.getDate()}`, timestamp: pastDate.getTime() });
+            localStorage.setItem('my_diary_notes', JSON.stringify(notes));
+        }
+        renderNotes();
+        
+        // 提笔开始私语！(唯一在主界面发生的打字动画)
+        penWriteHTML('butler-message', generateButlerMessage(notes), 35);
+        
+        // 异步后台获取天气，供解签使用
+        globalWeatherText = await fetchWeatherTip();
+    }
+</script>
+
+</body>
+</html>
