@@ -79,7 +79,6 @@
         .left-col { flex: 0.9; display: flex; flex-direction: column; border-right: 2px solid var(--retro-green); padding-right: 25px; }
         .right-col { flex: 1.3; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
 
-        /* 左侧老黄历 */
         .header { display: flex; justify-content: space-between; border-bottom: 2px solid var(--retro-green); padding-bottom: 8px; margin-bottom: 15px; font-weight: bold; color: var(--retro-green); font-size: 18px;}
         .main-date-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .couplet { writing-mode: vertical-rl; font-size: 22px; font-weight: bold; color: var(--retro-green); letter-spacing: 6px; text-shadow: 1px 1px 0 rgba(0,0,0,0.05);}
@@ -169,17 +168,10 @@
 </head>
 <body>
 
-<!-- 🎵 彻底替换为本地音频文件！ -->
-<!-- 请确保这三个 mp3 文件和这个 HTML 放在同一个文件夹内 -->
-<audio id="bgm" loop preload="auto">
-    <source src="bgm.mp3" type="audio/mpeg">
-</audio>
-<audio id="sfx-flip" preload="auto">
-    <source src="flip.mp3" type="audio/mpeg">
-</audio>
-<audio id="sfx-pen" loop preload="auto">
-    <source src="pen.mp3" type="audio/mpeg">
-</audio>
+<!-- 本地音频源 (注意必须叫这个名字并在同一文件夹) -->
+<audio id="bgm" loop preload="auto"><source src="bgm.mp3" type="audio/mpeg"></audio>
+<audio id="sfx-flip" preload="auto"><source src="flip.mp3" type="audio/mpeg"></audio>
+<audio id="sfx-pen" loop preload="auto"><source src="pen.mp3" type="audio/mpeg"></audio>
 
 <div class="book-wrapper">
     <div class="cover-page old-paper" id="cover-page">
@@ -304,6 +296,18 @@
 </div>
 
 <script>
+    // === 手机端防延迟：预热强制加载本地音频 ===
+    const preloader = () => {['bgm', 'sfx-flip', 'sfx-pen'].forEach(id => {
+            let audio = document.getElementById(id);
+            if(audio) audio.load();
+        });
+        document.removeEventListener('touchstart', preloader);
+        document.removeEventListener('mouseover', preloader);
+    };
+    document.addEventListener('touchstart', preloader, {once:true});
+    document.addEventListener('mouseover', preloader, {once:true});
+
+
     // === 万年历引擎 ===
     const today = new Date();
     const currentYear = today.getFullYear();
@@ -336,7 +340,7 @@
         document.getElementById('lunar-date').innerText = monthZhNames[currentMonth] + mockLunarDays[(currentDate + Math.floor(seededRandom(5)*10)) % 30];
         document.getElementById('week-day').innerText = weekNames[currentDay];
 
-        const couplets = [["烟火人间又是一天","岁月静好满心欢喜"],["花开花落又是一季","云卷云舒任由天意"], ["三餐四季温柔以待","平安喜乐万事胜意"],["行至水穷且坐看云","心无挂碍便是清欢"]];
+        const couplets = [["烟火人间又是一天","岁月静好满心欢喜"],["花开花落又是一季","云卷云舒任由天意"],["三餐四季温柔以待","平安喜乐万事胜意"],["行至水穷且坐看云","心无挂碍便是清欢"]];
         const selectedCouplet = couplets[Math.floor(seededRandom(6) * couplets.length)];
         document.getElementById('couplet-left').innerHTML = selectedCouplet[0].substring(0,4) + "<br>" + selectedCouplet[0].substring(4);
         document.getElementById('couplet-right').innerHTML = selectedCouplet[1].substring(0,4) + "<br>" + selectedCouplet[1].substring(4);
@@ -356,28 +360,27 @@
     document.getElementById('ji-keyword').innerText = todayJi.short;
     let globalWeatherText = "日历君正在努力夜观天象，请稍后再试...";
 
-    // === 音效底层黑科技：确保必定播放 ===
+    // === 手机端防拦截与静音劫持 ===
     const bgm = document.getElementById('bgm');
     const sfxFlip = document.getElementById('sfx-flip');
     const sfxPen = document.getElementById('sfx-pen');
 
     function startJourney() {
-        // 1. 播放超弱音量背景音 (15%)
+        // 1. 播放 BGM 与 翻纸声
         if(bgm) { 
             bgm.volume = 0.15; 
-            bgm.play().catch(e => console.log("BGM报错:", e)); 
+            bgm.play().catch(e => console.log("BGM被拦截")); 
         }
         if(sfxFlip) { 
-            sfxFlip.play().catch(e => console.log("翻页音效报错:", e)); 
+            sfxFlip.currentTime = 0; 
+            sfxFlip.play().catch(e => console.log("翻页被拦截")); 
         }
 
-        // 2. 黑科技：点击瞬间强行让写字音效静音播放（获取浏览器长期授权）
+        // 2. 手机端黑科技：让沙沙声立刻在后台以静音(muted)状态开始循环播放！
+        // 这样就彻底骗过了手机 Safari 和 Chrome 的异步拦截机制！
         if(sfxPen) {
-            sfxPen.volume = 0; // 0 音量
-            let playPromise = sfxPen.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(e => console.log("写字音效授权失败:", e));
-            }
+            sfxPen.muted = true; // 强制静音
+            sfxPen.play().catch(e => console.log("写字声静音播放被拦截"));
         }
 
         const coverPage = document.getElementById('cover-page');
@@ -390,43 +393,6 @@
             document.getElementById('inner-content').classList.add('show');
             setTimeout(() => { beginWritingMagic(); }, 1500); 
         }, 2500); 
-    }
-
-    // === 写字引擎：通过音量控制实现"沙沙"声 ===
-    let activeWriters = 0; 
-    let writeTokens = {};
-    async function penWriteHTML(elementId, htmlString, speed = 40) {
-        const token = Symbol(); writeTokens[elementId] = token;
-        
-        activeWriters++; 
-        if (activeWriters === 1 && sfxPen) { 
-            // 将正在空转的笔声瞬间拉到极大音量 (90%)，盖过BGM！
-            sfxPen.volume = 0.9; 
-        }
-
-        const el = document.getElementById(elementId); if(!el) return;
-        el.innerHTML = ''; let currentHTML = ''; let i = 0;
-        let cursor = el.parentNode.querySelector('.pen-cursor');
-        if(!cursor) { cursor = document.createElement('span'); cursor.className = 'pen-cursor'; cursor.innerHTML = '✒️'; el.parentNode.insertBefore(cursor, el.nextSibling); }
-        cursor.style.display = 'inline-block';
-
-        while (i < htmlString.length) {
-            if (writeTokens[elementId] !== token) break;
-            if (htmlString[i] === '<') {
-                let tag = ''; while (htmlString[i] !== '>' && i < htmlString.length) { tag += htmlString[i]; i++; } tag += '>'; currentHTML += tag;
-            } else {
-                currentHTML += htmlString[i]; i++; el.innerHTML = currentHTML;
-                await new Promise(r => setTimeout(r, speed + Math.random() * 20)); 
-            }
-        }
-        
-        if (writeTokens[elementId] === token) { cursor.style.display = 'none'; el.innerHTML = currentHTML; }
-        
-        activeWriters--; 
-        if (activeWriters === 0 && sfxPen) { 
-            // 停笔时，瞬间将音量压回0（静音空转，等待下次点击解签时再次拉大音量）
-            sfxPen.volume = 0; 
-        }
     }
 
     // === 真实API联网 ===
@@ -458,6 +424,44 @@
         }
     }
 
+    // === 引擎：通过解除静音实现写字声(绝不会被手机拦截) ===
+    let activeWriters = 0; 
+    let writeTokens = {};
+    async function penWriteHTML(elementId, htmlString, speed = 40) {
+        const token = Symbol(); writeTokens[elementId] = token;
+        
+        activeWriters++; 
+        // 手机端终极逻辑：真正开始写字时，直接解除静音(muted = false)，并将音量拉到90%盖过BGM！
+        if (activeWriters === 1 && sfxPen) { 
+            sfxPen.muted = false; 
+            sfxPen.volume = 0.9; 
+        }
+
+        const el = document.getElementById(elementId); if(!el) return;
+        el.innerHTML = ''; let currentHTML = ''; let i = 0;
+        let cursor = el.parentNode.querySelector('.pen-cursor');
+        if(!cursor) { cursor = document.createElement('span'); cursor.className = 'pen-cursor'; cursor.innerHTML = '✒️'; el.parentNode.insertBefore(cursor, el.nextSibling); }
+        cursor.style.display = 'inline-block';
+
+        while (i < htmlString.length) {
+            if (writeTokens[elementId] !== token) break;
+            if (htmlString[i] === '<') {
+                let tag = ''; while (htmlString[i] !== '>' && i < htmlString.length) { tag += htmlString[i]; i++; } tag += '>'; currentHTML += tag;
+            } else {
+                currentHTML += htmlString[i]; i++; el.innerHTML = currentHTML;
+                await new Promise(r => setTimeout(r, speed + Math.random() * 20)); 
+            }
+        }
+        
+        if (writeTokens[elementId] === token) { cursor.style.display = 'none'; el.innerHTML = currentHTML; }
+        
+        activeWriters--; 
+        // 停笔时，瞬间恢复静音(muted = true)，保持后台空转不断开连接
+        if (activeWriters === 0 && sfxPen) { 
+            sfxPen.muted = true; 
+        }
+    }
+
     // === 本地隐私数据 ===
     function getNotes() { try { return JSON.parse(localStorage.getItem('my_diary_notes')) ||[]; } catch (e) { return[]; } }
     function generateButlerMessage(notes) {
@@ -474,7 +478,7 @@
 
         const recentNote = notes.find(n => n.text.includes("委屈") || n.text.includes("累") || n.text.includes("难过"));
         if (recentNote) { return `${greeting} 老伙计翻看账本，发现前几天您写下了『${recentNote.text.substring(0,4)}...』。不管外面风霜如何，这本黄历永远是你的避风港。`; }
-        return `${greeting} 新的一天，纸笔已备好。伴着这古琴声，往事变作草芥随风散，今天想在黄历上记点什么奇遇呢？`;
+        return `${greeting} 新的一天，纸笔已备好。伴着这悠悠琴声，往事变作草芥随风散，今天想在黄历上记点什么奇遇呢？`;
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -547,11 +551,12 @@
     }
     function closeDetailModal() { 
         document.getElementById('detail-modal').style.display = 'none'; writeTokens['detail-modal-text'] = Symbol(); 
+        // 关闭时也直接用 muted 静音即可，避免调用 pause 报错
         if (activeWriters > 0) activeWriters--; 
-        if (activeWriters === 0 && sfxPen) sfxPen.volume = 0; // 同样通过静音来停止发声
+        if (activeWriters === 0 && sfxPen) sfxPen.muted = true; 
     }
 
-    // === 启动落笔与异步调用 ===
+    // === 启动落笔 ===
     async function beginWritingMagic() {
         const historyText = await fetchHistoryAPI();
         document.getElementById('history-content').innerHTML = historyText;
