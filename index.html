@@ -79,6 +79,7 @@
         .left-col { flex: 0.9; display: flex; flex-direction: column; border-right: 2px solid var(--retro-green); padding-right: 25px; }
         .right-col { flex: 1.3; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
 
+        /* 左侧老黄历 */
         .header { display: flex; justify-content: space-between; border-bottom: 2px solid var(--retro-green); padding-bottom: 8px; margin-bottom: 15px; font-weight: bold; color: var(--retro-green); font-size: 18px;}
         .main-date-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .couplet { writing-mode: vertical-rl; font-size: 22px; font-weight: bold; color: var(--retro-green); letter-spacing: 6px; text-shadow: 1px 1px 0 rgba(0,0,0,0.05);}
@@ -168,7 +169,7 @@
 </head>
 <body>
 
-<!-- 本地音频源 (注意必须叫这个名字并在同一文件夹) -->
+<!-- 本地音频源 (确保 bgm.mp3, flip.mp3, pen.mp3 放在同一个文件夹下) -->
 <audio id="bgm" loop preload="auto"><source src="bgm.mp3" type="audio/mpeg"></audio>
 <audio id="sfx-flip" preload="auto"><source src="flip.mp3" type="audio/mpeg"></audio>
 <audio id="sfx-pen" loop preload="auto"><source src="pen.mp3" type="audio/mpeg"></audio>
@@ -296,17 +297,28 @@
 </div>
 
 <script>
-    // === 手机端防延迟：预热强制加载本地音频 ===
-    const preloader = () => {['bgm', 'sfx-flip', 'sfx-pen'].forEach(id => {
-            let audio = document.getElementById(id);
-            if(audio) audio.load();
-        });
-        document.removeEventListener('touchstart', preloader);
-        document.removeEventListener('mouseover', preloader);
-    };
-    document.addEventListener('touchstart', preloader, {once:true});
-    document.addEventListener('mouseover', preloader, {once:true});
-
+    // === 手机端防拦截与权限全开黑科技 ===
+    let audioUnlocked = false;
+    function unlockAudio() {
+        if(audioUnlocked) return;
+        const pen = document.getElementById('sfx-pen');
+        if(pen) {
+            // 在触摸屏幕的瞬间，快速播放一次并暂停，拿到 iOS/Android 的音频控制权！
+            let playPromise = pen.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    pen.pause();
+                    pen.currentTime = 0;
+                }).catch(e=>{});
+            }
+        }
+        audioUnlocked = true;
+        document.removeEventListener('touchstart', unlockAudio);
+        document.removeEventListener('click', unlockAudio);
+    }
+    // 监听任意手势解锁音频引擎
+    document.addEventListener('touchstart', unlockAudio, {once: true, passive: true});
+    document.addEventListener('click', unlockAudio, {once: true, passive: true});
 
     // === 万年历引擎 ===
     const today = new Date();
@@ -360,27 +372,40 @@
     document.getElementById('ji-keyword').innerText = todayJi.short;
     let globalWeatherText = "日历君正在努力夜观天象，请稍后再试...";
 
-    // === 手机端防拦截与静音劫持 ===
-    const bgm = document.getElementById('bgm');
-    const sfxFlip = document.getElementById('sfx-flip');
-    const sfxPen = document.getElementById('sfx-pen');
+    // === 平滑收音算法 ===
+    function fadeOutAudio(audioElement, durationMs) {
+        if (!audioElement) return;
+        const steps = durationMs / 50; 
+        const volumeStep = audioElement.volume / steps;
+        
+        const fadeInterval = setInterval(() => {
+            if (audioElement.volume - volumeStep > 0.05) {
+                audioElement.volume -= volumeStep;
+            } else {
+                audioElement.volume = 0;
+                audioElement.pause();
+                clearInterval(fadeInterval);
+            }
+        }, 50);
+    }
 
+    // === 翻页执行与时机控制 ===
     function startJourney() {
-        // 1. 播放 BGM 与 翻纸声
+        const bgm = document.getElementById('bgm');
+        const sfxFlip = document.getElementById('sfx-flip');
+        
+        // 直接在 Click 事件中播放，手机端百分百放行！
         if(bgm) { 
             bgm.volume = 0.15; 
-            bgm.play().catch(e => console.log("BGM被拦截")); 
+            bgm.play().catch(e => console.log('BGM Play Error:', e)); 
         }
         if(sfxFlip) { 
+            sfxFlip.volume = 1.0; 
             sfxFlip.currentTime = 0; 
-            sfxFlip.play().catch(e => console.log("翻页被拦截")); 
-        }
-
-        // 2. 手机端黑科技：让沙沙声立刻在后台以静音(muted)状态开始循环播放！
-        // 这样就彻底骗过了手机 Safari 和 Chrome 的异步拦截机制！
-        if(sfxPen) {
-            sfxPen.muted = true; // 强制静音
-            sfxPen.play().catch(e => console.log("写字声静音播放被拦截"));
+            sfxFlip.play().catch(e => console.log('Flip Play Error:', e)); 
+            
+            // 翻纸声渐渐收音（1.5秒后开始变弱）
+            setTimeout(() => { fadeOutAudio(sfxFlip, 800); }, 1500);
         }
 
         const coverPage = document.getElementById('cover-page');
@@ -424,17 +449,18 @@
         }
     }
 
-    // === 引擎：通过解除静音实现写字声(绝不会被手机拦截) ===
+    // === 写字引擎：调用正统 Play/Pause 释放性能 ===
     let activeWriters = 0; 
     let writeTokens = {};
     async function penWriteHTML(elementId, htmlString, speed = 40) {
         const token = Symbol(); writeTokens[elementId] = token;
+        const sfxPenInstance = document.getElementById('sfx-pen');
         
         activeWriters++; 
-        // 手机端终极逻辑：真正开始写字时，直接解除静音(muted = false)，并将音量拉到90%盖过BGM！
-        if (activeWriters === 1 && sfxPen) { 
-            sfxPen.muted = false; 
-            sfxPen.volume = 0.9; 
+        if (activeWriters === 1 && sfxPenInstance) { 
+            sfxPenInstance.volume = 0.9; 
+            sfxPenInstance.currentTime = 0;
+            sfxPenInstance.play().catch(e=>{}); 
         }
 
         const el = document.getElementById(elementId); if(!el) return;
@@ -456,9 +482,8 @@
         if (writeTokens[elementId] === token) { cursor.style.display = 'none'; el.innerHTML = currentHTML; }
         
         activeWriters--; 
-        // 停笔时，瞬间恢复静音(muted = true)，保持后台空转不断开连接
-        if (activeWriters === 0 && sfxPen) { 
-            sfxPen.muted = true; 
+        if (activeWriters === 0 && sfxPenInstance) { 
+            sfxPenInstance.pause(); // 真实停止播放，不占用任何手机资源
         }
     }
 
@@ -551,9 +576,11 @@
     }
     function closeDetailModal() { 
         document.getElementById('detail-modal').style.display = 'none'; writeTokens['detail-modal-text'] = Symbol(); 
-        // 关闭时也直接用 muted 静音即可，避免调用 pause 报错
         if (activeWriters > 0) activeWriters--; 
-        if (activeWriters === 0 && sfxPen) sfxPen.muted = true; 
+        if (activeWriters === 0) {
+            const sfxPenInstance = document.getElementById('sfx-pen');
+            if(sfxPenInstance) sfxPenInstance.pause();
+        }
     }
 
     // === 启动落笔 ===
